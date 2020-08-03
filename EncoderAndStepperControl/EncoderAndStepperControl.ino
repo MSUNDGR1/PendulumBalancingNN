@@ -31,8 +31,6 @@ char recCom; //First Character off Serial input
  */
 int serialByteInput;
 int serialIn;
-int serialOutAngNow;
-int serialOutAngThen;
 int serialOutLinPos;
 int serialOutLinSpeed;
 
@@ -44,39 +42,6 @@ int dir = 0; //-1 is CCW, 1 is CW, 0 is stationary
 
 byte inBuff[20];
 byte outBuff[16];
-
-/*COROUTINE(step){
-  COROUTINE_LOOP() {
-   if((dir != 0) && (linPos > stepMin) && (linPos < stepMax)){
-    digitalWriteFast(stepPinPul, HIGH);
-    COROUTINE_DELAY_MICROS(stepTimeH);
-    digitalWriteFast(stepPinPul, LOW);
-    COROUTINE_DELAY_MICROS(stepTimeH);
-    linPos += dir;
-   }
-  }
-}
-
-COROUTINE(dynam){
-  COROUTINE_LOOP(){
-    if(incAngPos ==0){
-     dir = 0;
-    }
-    if(lastAngPos != incAngPos){
-     if((lastAngPos >= 0) && (incAngPos < 0)){
-       Serial.println("CCW");
-       digitalWriteFast(stepPinDir, LOW);
-       dir = -1;
-     }else if((lastAngPos <=0) && (incAngPos > 0)){
-       Serial.println("CW");
-       digitalWriteFast(stepPinDir, HIGH);
-       dir = 1;
-    }
-    stepTimeH = (unsigned int) (500000 / incAngPos);
-   }
-   lastAngPos = incAngPos;
-  }
-}*/
 
 void setup() {
   // put your setup code here, to run once:
@@ -103,51 +68,22 @@ void setup() {
  * Initial char is command
  * next 4 bytes are integer corresponding to command
  * 
- * Output message is 16 bytes from 4 ints
+ * Output message is 12 bytes from 4 ints
  * 1. Current angular position from encoder
  * 2. Previous timestep angular position from encoder
  * 3. Linear position of carriage 
- * 4. Linear velocity of carriage
  */
 void loop() {
-  
-  /*step.runCoroutine();
-  dynam.runCoroutine();*/
-  /*serialByteInput = Serial.available();
-  if(serialByteInput > 0){
-    for(int i = 0; i < serialByteInput; i++){
-      inBuff[i] = Serial.read();
-    }
-    
-  }*/
-  if(incAngPos ==0){
-     dir = 0;
-    }
-    if(lastAngPos != incAngPos){
-      Serial.println(incAngPos);
-     if((lastAngPos >= 0) && (incAngPos < 0)){
-       Serial.println("CCW");
-       digitalWriteFast(stepPinDir, LOW);
-       dir = -1;
-     }else if((lastAngPos <=0) && (incAngPos > 0)){
-       Serial.println("CW");
-       digitalWriteFast(stepPinDir, HIGH);
-       dir = 1;
-    }
-    stepTimeH = (unsigned int) (500000 / abs(3 *incAngPos));
-   }
-   lastAngPos = incAngPos;
    bool checkLeft = linPos >stepMin || dir > 0;
    bool checkRight = linPos <stepMax || dir < 0;
   if((dir != 0) && (checkLeft) && (checkRight)){
     digitalWriteFast(stepPinPul, HIGH);
-    //COROUTINE_DELAY_MICROS(stepTimeH);
     delayMicroseconds(stepTimeH);
     digitalWriteFast(stepPinPul, LOW);
-    //COROUTINE_DELAY_MICROS(stepTimeH);
     delayMicroseconds(stepTimeH);
     linPos += dir;
    }
+   lastAngPos = incAngPos;
 }
 
 unsigned int stepTimeCalc(int stepsPerSecond){
