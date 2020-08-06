@@ -2,8 +2,6 @@
 //CW moves left
 //CCW moves right
 #include <digitalWriteFast.h>
-//#include <AceRoutine.h>
-//using namespace ace_routine;
 
 
 #define encPinA 2
@@ -66,18 +64,15 @@ unsigned int stepTimeCalc(int stepsPerSecond){
 }
 
 void powerCommand(){
-  int interm;
-  char2 = Serial.read();
+  input2 = Serial.read();
   while(Serial.available() < 3);
   for(int i = 0; i < 3; i++){
-    charBuff[i] = Serial.read();
+    dataBuff[i] = Serial.read();
   }
-  if(char2 == 'p'){
-    interm = lastVel;
+  if(input2 == 'p'){
     lastVel = currVel;
     currVel += atoi(dataBuff);
-  }else if(char2 == 'n'){
-    interm = lastVel;
+  }else if(input2 == 'n'){
     lastVel = currVel;
     currVel -= atoi(dataBuff);
   }
@@ -92,13 +87,77 @@ void powerCommand(){
   stepTimeH = stepTimeCalc(currVel);
 }
 
+void sendCommand(){
+    Serial.println(incAngPos);
+    Serial.println(lastAngPos);
+    lastAngPos = incAngPos;
+    Serial.println(linPos);
+    Serial.println(currVel);
+    lastAngPos = incAngPos;
+}
+
+void resetCommand(){
+  if(linPos > 0){
+      digitalWriteFast(stepPinDir, LOW);
+      dir = -1;
+      stepTimeH = stepTimeCalc(800);
+      while(linPos != 0){
+        digitalWriteFast(stepPinPul, HIGH);
+        delayMicroseconds(stepTimeH);
+        digitalWriteFast(stepPinPul, LOW);
+        delayMicroseconds(stepTimeH);
+        linPos += dir;
+      }
+    
+  }else if(linPos < 0){
+    digitalWriteFast(stepPinDir, HIGH);
+      dir = 1;
+      stepTimeH = stepTimeCalc(800);
+      while(linPos != 0){
+        digitalWriteFast(stepPinPul, HIGH);
+        delayMicroseconds(stepTimeH);
+        digitalWriteFast(stepPinPul, LOW);
+        delayMicroseconds(stepTimeH);
+        linPos += dir;
+      }
+  }
+  delay(4000);
+  incAngPos = 0;
+  lastAngPos = 0;
+  currVel = 0;
+  lastVel = 0;
+  dir = 0;
+}
+
+void disableCommand(){
+  digitalWrite(stepPinEna, LOW);
+}
+
+void reenableCommand(){
+  digitalWrite(stepPinEna, HIGH);
+  linPos = 0;
+  resetCommand();
+}
 
 void loop() {
    if(Serial.available() > 0){
-      char1 = Serial.read();
-      switch (char1){
+      input1 = Serial.read();
+      switch (input1){
         case ('c'):
           powerCommand();
+          break;
+         case ('r'):
+          resetCommand();
+          break;
+         case ('n'):
+          reenableCommand();
+          break;
+         case ('s'):
+          disableCommand();
+          break;
+         case ('o'):
+          sendCommand();
+          break;
       }
    }
    bool checkLeft = linPos >stepMin || dir > 0;
@@ -110,11 +169,8 @@ void loop() {
       delayMicroseconds(stepTimeH);
       linPos += dir;
    }
-   lastAngPos = incAngPos;
+   
 }
-
-
-
 
 
 //Encoder pulse position ISR

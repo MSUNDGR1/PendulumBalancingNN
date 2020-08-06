@@ -98,7 +98,11 @@ class BalancingAct():
     def reset(self):
         self.done = False
         self.stepTime = 0
+        self.actionPower = 0
         self.serialCom.write(b'r')
+        while self.cartPos !=0 and self.poleAng != 0 and self.poleAngVel != 0:
+            self.getValues()
+            sleep(1)
         
         
     def disableMotor(self): 
@@ -114,14 +118,18 @@ class BalancingAct():
     def getValues(self):
         self.serialCom.write(b'o')
         
-        self.poleAng = int(self.serialCom.readline().decode().split('\r\n')[0]) #current angular position
-        self.poleAngVel = int(self.serialCom.readLine().decode().split('\r\n')[0]) # previous timestep angular position
-        self.cartPos = int(self.serialCom.readLine().decode().split('\r\n')[0]) # linear position of carriage
-        self.cartVel = int(self.serialCom.readline().decode().split('\r\n')[0]) # linear velocity of carriage
+        self.poleAng = int((self.serialCom.readline().decode().split('\r\n'))[0]) #current angular position
+        self.poleAngVel = int((self.serialCom.readLine().decode().split('\r\n'))[0]) # previous timestep angular position
+        self.cartPos = int((self.serialCom.readLine().decode().split('\r\n'))[0]) # linear position of carriage
+        self.cartVel = int((self.serialCom.readline().decode().split('\r\n'))[0]) # linear velocity of carriage
         
         self.poleAng %= 600
         self.poleAngVel %= 600
-        
+        if abs(self.cartPos) >= 2400:
+            self.done = True;
+        if self.stepTime > 150:
+            self.done = True
+            
         
     def rewardCalc(self):
         reward = -1
@@ -137,15 +145,14 @@ class BalancingAct():
             
         if abs(self.cartVel) < 200:
             reward += 2
-        if abs(self.cartPos) < 400:
+        if abs(self.cartPos) < 2000:
             reward +=2
         return reward
+    
     #steps through single time step, actuating stepper motor
-    #returns linPos, linVel, poleAng, poleAngVel, Reward
+    #returns linPos, linVel, poleAng, poleAngVel, Reward, done 
     def step(self, action):
         
-        if self.stepTime == 150:
-            self.done = True
         
         if action == 1:
             self.actionPower = -300
@@ -172,16 +179,17 @@ class BalancingAct():
                 self.serialCom.write(b'p')
             else:
                 self.serialCom.write(b'n')
-            self.serialCom.write(("%03d" % self.actionPower).encode())
+            self.serialCom.write(("%03d" % abs(self.actionPower)).encode())
             
         
-        sleep(0.1)
+        sleep(0.075)
+        self.stepTime += 1
         
         self.getValues()
         
         reward = self.rewardCalc()
         
-        return self.cartPos, self.cartVel, self.poleAng, self.poleAngVel, reward
+        return self.cartPos, self.cartVel, self.poleAng, self.poleAngVel, reward, self.done
         
         
         
