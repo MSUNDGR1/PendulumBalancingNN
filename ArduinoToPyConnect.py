@@ -101,8 +101,9 @@ class BalancingAct():
         self.actionPower = 0
         self.serialCom.write(b'r')
         while self.cartPos !=0 and self.poleAng != 0 and self.poleAngVel != 0:
+            sleep(5)
             self.getValues()
-            sleep(1)
+            
         
         
     def disableMotor(self): 
@@ -111,8 +112,9 @@ class BalancingAct():
     def reZeroMotor(self):     
         self.serialCom.write(b'n')
         while self.cartPos != 0 and self.poleAng != 0:
+            sleep(5)
             self.getValues()
-            sleep(0.5)
+           
             
     
     def getValues(self):
@@ -154,17 +156,17 @@ class BalancingAct():
     def step(self, action):
         
         
-        if action == 1:
+        if action == 0:
             self.actionPower = -300
-        elif action ==2:
+        elif action == 1:
             self.actionPower = -225
-        elif action ==3:
+        elif action == 2:
             self.actionPower = -150
-        elif action == 4:
+        elif action == 3:
             self.actionPower = -75
-        elif action ==5:
+        elif action == 4:
             self.actionPower = 0
-        elif action ==6:
+        elif action == 5:
             self.actionPower = 75
         elif action == 6:
             self.actionPower = 150
@@ -172,6 +174,7 @@ class BalancingAct():
             self.actionPower = 225
         elif action ==8:
             self.actionPower = 300
+        
         
         if self.actionPower != 0:
             self.serialCom.write(b'c')
