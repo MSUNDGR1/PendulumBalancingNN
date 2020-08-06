@@ -21,11 +21,8 @@ Serial Interface:
 """
 
 
-import struct
+
 import serial
-import numpy as np
-import gym
-from gym import spaces
 from time import sleep
 
 
@@ -92,12 +89,10 @@ class BalancingAct():
         self.poleAng = 0
         self.poleAngVel = 0
         
-        self.action_space = spaces.Discrete(9)
-        
         self.done = False
         self.stepTime = 0
         self.serialCom = serial.Serial('COM3', 115200, timeout=1) 
-        sleep(3)
+        sleep(2)
         self.actionPower = 0
         
     def reset(self):
@@ -119,10 +114,10 @@ class BalancingAct():
     def getValues(self):
         self.serialCom.write(b'o')
         
-        self.poleAng = self.serialCom.readline().decode('ascii') #current angular position
-        self.poleAngVel = self.serialCom.readLine().decode('ascii') # previous timestep angular position
-        self.cartPos = self.serialCom.readLine().decode('ascii') # linear position of carriage
-        self.cartVel = self.serialCom.readline().decode('ascii') # linear velocity of carriage
+        self.poleAng = int(self.serialCom.readline().decode().split('\r\n')[0]) #current angular position
+        self.poleAngVel = int(self.serialCom.readLine().decode().split('\r\n')[0]) # previous timestep angular position
+        self.cartPos = int(self.serialCom.readLine().decode().split('\r\n')[0]) # linear position of carriage
+        self.cartVel = int(self.serialCom.readline().decode().split('\r\n')[0]) # linear velocity of carriage
         
         self.poleAng %= 600
         self.poleAngVel %= 600
@@ -142,11 +137,12 @@ class BalancingAct():
             
         if abs(self.cartVel) < 200:
             reward += 2
+        if abs(self.cartPos) < 400:
+            reward +=2
+        return reward
     #steps through single time step, actuating stepper motor
     #returns linPos, linVel, poleAng, poleAngVel, Reward
     def step(self, action):
-        err_msg = "Dumb bitch"
-        assert self.action_space.contains(action), err_msg
         
         if self.stepTime == 150:
             self.done = True
@@ -170,10 +166,14 @@ class BalancingAct():
         elif action ==8:
             self.actionPower = 300
         
-        outString = b'c'
-        outString += struct.pack('!i', self.actionPower)
-        
-        self.serialCom.write(outString)
+        if self.actionPower != 0:
+            self.serialCom.write(b'c')
+            if self.actionPower > 0:
+                self.serialCom.write(b'p')
+            else:
+                self.serialCom.write(b'n')
+            self.serialCom.write(("%03d" % self.actionPower).encode())
+            
         
         sleep(0.1)
         
