@@ -26,7 +26,7 @@ import serial
 from time import sleep
 
 
-class BalancingAct():
+class connector():
     """
     Real world implementation of the cart pole environment
     Desc:
@@ -103,6 +103,7 @@ class BalancingAct():
         while self.cartPos !=0 and self.poleAng != 0 and self.poleAngVel != 0:
             sleep(5)
             self.getValues()
+        return 
             
         
         
@@ -132,7 +133,7 @@ class BalancingAct():
         if self.stepTime > 150:
             self.done = True
             
-        
+        return self.cartPos, self.cartVel, self.poleAng, self.poleAngVel
     def rewardCalc(self):
         reward = -1
         rewardNum = abs(self.poleAng - 300)
