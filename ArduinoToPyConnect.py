@@ -92,7 +92,6 @@ class connector():
         self.done = False
         self.stepTime = 0
         self.serialCom = serial.Serial('COM3', 115200, timeout=1) 
-        sleep(2)
         self.actionPower = 0
         
     def reset(self):
@@ -100,10 +99,6 @@ class connector():
         self.stepTime = 0
         self.actionPower = 0
         self.serialCom.write(b'r')
-        while self.cartPos !=0 and self.poleAng != 0 and self.poleAngVel != 0:
-            sleep(5)
-            self.getValues()
-        return 
             
         
         
@@ -112,44 +107,44 @@ class connector():
     
     def reZeroMotor(self):     
         self.serialCom.write(b'n')
-        while self.cartPos != 0 and self.poleAng != 0:
-            sleep(5)
-            self.getValues()
-           
+        self.done = False
+        self.stepTime = 0
+        self.actionPower = 0
             
     
     def getValues(self):
         self.serialCom.write(b'o')
-        
+        sleep(0.08)
         self.poleAng = int((self.serialCom.readline().decode().split('\r\n'))[0]) #current angular position
-        self.poleAngVel = int((self.serialCom.readLine().decode().split('\r\n'))[0]) # previous timestep angular position
-        self.cartPos = int((self.serialCom.readLine().decode().split('\r\n'))[0]) # linear position of carriage
+        self.poleAngVel = int((self.serialCom.readline().decode().split('\r\n'))[0]) # previous timestep angular position
+        self.cartPos = int((self.serialCom.readline().decode().split('\r\n'))[0]) # linear position of carriage
         self.cartVel = int((self.serialCom.readline().decode().split('\r\n'))[0]) # linear velocity of carriage
         
         self.poleAng %= 600
         self.poleAngVel %= 600
-        if abs(self.cartPos) >= 2400:
+        if abs(self.cartPos) >= 1000:
             self.done = True;
         if self.stepTime > 150:
             self.done = True
             
         return self.cartPos, self.cartVel, self.poleAng, self.poleAngVel
     def rewardCalc(self):
-        reward = -1
+        reward = 0
         rewardNum = abs(self.poleAng - 300)
-        if rewardNum <= 225:
+        if rewardNum <= 260:
             reward += 2
-            if rewardNum <= 150:
+            if rewardNum <= 180:
                 reward += 1
-                if rewardNum <=75:
+                if rewardNum <=95:
                     reward += 1
-                    if rewardNum <= 25:
+                    if rewardNum <= 45:
                         reward += 1
-            
-        if abs(self.cartVel) < 200:
-            reward += 2
-        if abs(self.cartPos) < 2000:
-            reward +=2
+        if abs(self.cartPos) < 300:
+            reward +=1
+        if abs(self.cartPos) < 400:
+            reward += 1
+        if abs(self.cartPos) > 500:
+            reward -= 2
         return reward
     
     #steps through single time step, actuating stepper motor
@@ -160,21 +155,23 @@ class connector():
         if action == 0:
             self.actionPower = -300
         elif action == 1:
-            self.actionPower = -225
-        elif action == 2:
-            self.actionPower = -150
-        elif action == 3:
-            self.actionPower = -75
-        elif action == 4:
-            self.actionPower = 0
-        elif action == 5:
-            self.actionPower = 75
-        elif action == 6:
-            self.actionPower = 150
-        elif action == 7:
-            self.actionPower = 225
-        elif action ==8:
-            self.actionPower = 300
+            self.actionPower = 500
+       # elif action == 1:
+        #    self.actionPower = -225
+        #elif action == 2:
+         #   self.actionPower = -150
+        #elif action == 3:
+         #   self.actionPower = -75
+        #elif action == 4:
+         #   self.actionPower = 0
+        #elif action == 5:
+         #   self.actionPower = 75
+        #elif action == 6:
+         #   self.actionPower = 150
+        #elif action == 7:
+         #   self.actionPower = 225
+        #elif action ==8:
+         #   self.actionPower = 300 
         
         
         if self.actionPower != 0:
@@ -186,7 +183,7 @@ class connector():
             self.serialCom.write(("%03d" % abs(self.actionPower)).encode())
             
         
-        sleep(0.075)
+        sleep(0.15)
         self.stepTime += 1
         
         self.getValues()
@@ -199,8 +196,37 @@ class connector():
         
         
         
+from PolicyGradientAlgo import Agent
+import torch as T
+from torch.autograd import Variable
+
+if __name__ == '__main__':
+    env = connector()
+    sleep(5)
+    agent = Agent(lr=0.004, input_dims=4, gamma=0.99, n_actions=2, l1_size=128, l2_size=128)
+    
+    score = 0
+    num_episodes = 20
+    env.reZeroMotor()
+    sleep(5)
+    for i in range(num_episodes):
         
-        
+        done = False
+        score = 0
+        env.reset()
+        sleep(5)
+        cartPos, cartVel, poleAng, poleAngVel = env.getValues()
+        sleep(1)
+        while not done:
+            print(cartPos)
+            observation = T.tensor([cartPos, cartVel, poleAng, poleAngVel]).float()
+            action = agent.choose_action(Variable(observation))
+            cartPos, cartVel, poleAng, poleAngVel, reward, done = env.step(action)
+            sleep(0.05)
+            agent.store_rewards(reward)
+            score += reward
+        agent.learn()
+        print(i, 'score: %.3f' % score)
         
         
         

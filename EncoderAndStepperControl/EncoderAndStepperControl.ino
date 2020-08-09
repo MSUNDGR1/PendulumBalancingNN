@@ -11,8 +11,8 @@
 #define stepPinDir 8
 #define stepPinPul 7
 
-const int stepMin = -3200;
-const int stepMax = 3200;
+const int stepMin = -1000;
+const int stepMax = 1000;
 
 //encoder variables
 volatile bool pinAState = LOW;
@@ -48,33 +48,42 @@ void setup() {
   pinModeFast(stepPinPul, OUTPUT);
   pinMode(stepPinEna, OUTPUT);
   digitalWriteFast(stepPinDir, LOW);
-  digitalWrite(stepPinEna, HIGH);
+  digitalWrite(stepPinEna, LOW);
   pinAState = digitalRead(encPinA);
-  dir = 1;
+  dir = 0;
   linPos = 0;
   stepTimeH = 1000;
   pinBState = digitalReadFast(encPinB);
   attachInterrupt(digitalPinToInterrupt(encPinA), APULSE, FALLING);
-  Serial.println("meme");
+  while(Serial.available() > 0){
+    char in = Serial.read();
+  }
 }
 
 unsigned int stepTimeCalc(int stepsPerSecond){
-  static unsigned int retVal = (unsigned int)(500000 / stepsPerSecond);
+  static unsigned int retVal = (unsigned int)(500000 / abs(stepsPerSecond));
   return retVal; 
 }
 
+void powerUp(){
+  digitalWriteFast(stepPinDir, HIGH);
+  dir = 1;
+  stepTimeH = stepTimeCalc(1500);
+}
+
 void powerCommand(){
+  
+  while(Serial.available() < 4);
   input2 = Serial.read();
-  while(Serial.available() < 3);
   for(int i = 0; i < 3; i++){
     dataBuff[i] = Serial.read();
   }
   if(input2 == 'p'){
     lastVel = currVel;
-    currVel += atoi(dataBuff);
+    currVel = atoi(dataBuff);
   }else if(input2 == 'n'){
     lastVel = currVel;
-    currVel -= atoi(dataBuff);
+    currVel = -1 *atoi(dataBuff);
   }
   if(lastVel <= 0 && currVel > 0){
     digitalWriteFast(stepPinDir, HIGH);
@@ -121,7 +130,7 @@ void resetCommand(){
         linPos += dir;
       }
   }
-  delay(4000);
+  delay(2000);
   incAngPos = 0;
   lastAngPos = 0;
   currVel = 0;
