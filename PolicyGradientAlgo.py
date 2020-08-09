@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
+import os
 
 class PolicyNetwork(nn.Module):
     def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions):
@@ -86,7 +87,21 @@ class Agent(object):
             
             
             
-            
+    def saveModel(self):
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        Path = os.path.join(dir_path, "\PGalgo.pt")
+        T.save({'model_state_dict': self.policy.state_dict(),
+                    'optimizer_state_dict': self.policy.optimizer.state_dict()},
+                    Path)
+        
+    def loadModel(self):
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        Path = os.path.join(dir_path, "\PGalgo.pt")
+        checkpoint = T.load(Path)
+        self.policy.load_state_dict(checkpoint['model_state_dict'])
+        self.policy.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        
+        
             
             
             
