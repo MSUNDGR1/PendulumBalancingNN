@@ -88,15 +88,15 @@ class Agent(object):
             
             
     def saveModel(self):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        Path = os.path.join(dir_path, "\PGalgo.pt")
+        
+        Path = "PGAlgo.pt"
         T.save({'model_state_dict': self.policy.state_dict(),
                     'optimizer_state_dict': self.policy.optimizer.state_dict()},
                     Path)
         
     def loadModel(self):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        Path = os.path.join(dir_path, "\PGalgo.pt")
+        
+        Path = "PGAlgo.pt"
         checkpoint = T.load(Path)
         self.policy.load_state_dict(checkpoint['model_state_dict'])
         self.policy.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])

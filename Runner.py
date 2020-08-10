@@ -14,8 +14,8 @@ from time import sleep
 if __name__ == '__main__':
     env = connector()
     sleep(2)
-    agent = Agent(lr=0.004, input_dims=4, gamma=0.99, n_actions=9,
-                  l1_size=128, l2_size=128)
+    agent = Agent(lr=0.002, input_dims=4, gamma=0.99, n_actions=3,
+                  l1_size=256, l2_size=128)
     while True:
         check = input('Command: \n')
         if check == 'train':
@@ -37,9 +37,9 @@ if __name__ == '__main__':
                 print('Episode: ', i, 'score: %.3f' % score)
                 
         elif check == 'save':
-            agent.save()
+            agent.saveModel()
         elif check == 'load':
-            agent.load()
+            agent.loadModel()
         
         elif check == 'disable':
             env.disableMotor()
