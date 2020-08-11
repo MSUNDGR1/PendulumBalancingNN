@@ -122,29 +122,34 @@ class connector():
         
         self.poleAng %= 600
         self.poleAngVel %= 600
-        if abs(self.cartPos) >= 900:
-            self.done = True;
-        if self.stepTime > 150:
-            self.done = True
             
         return self.cartPos, self.cartVel, self.poleAng, self.poleAngVel
     def rewardCalc(self):
-        reward = 0
+        reward = -1
         rewardNum = abs(self.poleAng - 300)
-        if rewardNum <= 275:
-            reward += 2
-            if rewardNum <= 180:
-                reward += 1
+        if rewardNum <= 285:
+            reward += 5
+            if rewardNum <= 240:
+                reward += 2
                 if rewardNum <=95:
-                    reward += 1
+                    reward += 2
                     if rewardNum <= 45:
-                        reward += 1
-        if abs(self.cartPos) < 300:
-            reward +=1
-        if abs(self.cartPos) < 400:
-            reward += 1
-        if abs(self.cartPos) > 500:
-            reward -= 1
+                        reward += 2
+        
+        cartNum = abs(self.cartPos) / 30
+        if cartNum > 12:
+            reward -= int(cartNum / 2)
+        rewardNumPast = abs(self.poleAngVel - 300)
+        if abs(rewardNum - rewardNumPast) <15:
+            reward -=2
+        if rewardNum < 50 and rewardNumPast < 50:
+            reward += 20
+            self.done = True
+        if abs(self.cartPos) >= 900:
+            self.done = True;
+        if self.stepTime > 80:
+            self.done = True
+        
         return reward
     
     #steps through single time step, actuating stepper motor
@@ -153,11 +158,11 @@ class connector():
         
         
         if action == 0:
-            self.actionPower = -500
+            self.actionPower = -600
         elif action == 1:
-            self.actionPower = 0
-        elif action == 2:
-            self.actionPower = 500
+            self.actionPower = 600
+       # elif action == 2:
+           # self.actionPower = 500
         #elif action == 3:
           #  self.actionPower = 250
       #  elif action == 4:
@@ -181,7 +186,7 @@ class connector():
             self.serialCom.write(("%03d" % abs(self.actionPower)).encode())
             
         
-        sleep(0.15)
+        sleep(0.1)
         self.stepTime += 1
         
         self.getValues()

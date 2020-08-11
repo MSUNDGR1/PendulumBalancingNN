@@ -14,7 +14,7 @@ from time import sleep
 if __name__ == '__main__':
     env = connector()
     sleep(2)
-    agent = Agent(lr=0.002, input_dims=4, gamma=0.99, n_actions=3,
+    agent = Agent(lr=0.008, input_dims=4, gamma=0.97, n_actions=2,
                   l1_size=256, l2_size=128)
     while True:
         check = input('Command: \n')
@@ -28,6 +28,7 @@ if __name__ == '__main__':
                 env.reset()
                 cartPos, cartVel, poleAng, poleAngVel = env.getValues()
                 while not done:
+                    print(poleAng)
                     observation = T.tensor([cartPos, cartVel, poleAng, poleAngVel]).float()
                     action = agent.choose_action(Variable(observation))
                     cartPos, cartVel, poleAng, poleAngVel, reward, done = env.step(action)
@@ -35,7 +36,7 @@ if __name__ == '__main__':
                     score += reward
                 agent.learn()
                 print('Episode: ', i, 'score: %.3f' % score)
-                
+            env.disableMotor()
         elif check == 'save':
             agent.saveModel()
         elif check == 'load':
