@@ -6,8 +6,8 @@
 #define stepPinPul 7
 
 #include <digitalWriteFast.h>
-const int stepMin = -1000;
-const int stepMax = 1000;
+const int stepMin = -500;
+const int stepMax = 500;
 
 volatile bool pinAState = LOW;
 volatile bool pinBState = LOW;
@@ -17,9 +17,9 @@ int linPos;
 unsigned int stepTimeH;
 
 
-double kp = 2
-double ki = 5
-double kd = 1
+double kp = 8;
+double ki = 0.000;
+double kd = 0;
 
 unsigned long currentTime, previousTime;
 double elapsedTime;
@@ -29,6 +29,7 @@ double output, setPoint;
 double cumError, rateError;
 
 void setup() {
+  Serial.begin(9600);
   // put your setup code here, to run once:
   pinMode(encPinA, INPUT);
   pinModeFast(encPinB, INPUT);
@@ -36,9 +37,8 @@ void setup() {
   pinModeFast(stepPinPul, OUTPUT);
   pinMode(stepPinEna, OUTPUT);
   digitalWriteFast(stepPinDir, LOW);
-  digitalWrite(stepPinEna, LOW);
+  digitalWrite(stepPinEna, HIGH);
   pinAState = digitalRead(encPinA);
-  dir = 0;
   linPos = 0;
   stepTimeH = 1000;
   pinBState = digitalReadFast(encPinB);
@@ -50,12 +50,14 @@ void setup() {
 }
 
 void loop() {
+  delayMicroseconds(100000);
   // put your main code here, to run repeatedly:
   output = computePID(incAngPos);
   if(output < 0){
     digitalWriteFast(stepPinDir, LOW);
     int stepNum = abs(output);
     for(int i = 0; i < stepNum; i++){
+      linPos--;
       digitalWriteFast(stepPinPul, HIGH);
       delayMicroseconds(600);
       digitalWriteFast(stepPinPul, LOW);
@@ -65,11 +67,15 @@ void loop() {
     digitalWriteFast(stepPinDir, HIGH);
     int stepNum = abs(output);
     for(int i = 0; i < stepNum; i++){
+      linPos++;
       digitalWriteFast(stepPinPul, HIGH);
-      delayMicroseconds(600);
+      delayMicroseconds(900);
       digitalWriteFast(stepPinPul, LOW);
-      delayMicroseconds(600);
+      delayMicroseconds(900);
     }
+  }
+  if(linPos > stepMax || linPos < stepMin){
+    delayMicroseconds(100000000);
   }
 }
 

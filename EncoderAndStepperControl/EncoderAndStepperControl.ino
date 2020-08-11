@@ -32,7 +32,7 @@ int currVel = 0;
 int lastVel = 0;
 unsigned int stepTimeH; // calculated in microseconds from currVel, half of each step time
 int dir = 0; //-1 is CCW, 1 is CW, 0 is stationary
-
+bool operating =  false;
 
 char input1;
 char input2;
@@ -73,17 +73,29 @@ void powerUp(){
 
 void powerCommand(){
   
-  while(Serial.available() < 4);
+  while(Serial.available() < 1);
   input2 = Serial.read();
-  for(int i = 0; i < 3; i++){
-    dataBuff[i] = Serial.read();
-  }
+  
   if(input2 == 'p'){
+    operating = true;
+    while(Serial.available() < 3);
+    for(int i = 0; i < 3; i++){
+      dataBuff[i] = Serial.read();
+    }
     lastVel = currVel;
     currVel = atoi(dataBuff);
   }else if(input2 == 'n'){
+    operating = true;
+    while(Serial.available() < 3);
+    for(int i = 0; i < 3; i++){
+      dataBuff[i] = Serial.read();
+    }
     lastVel = currVel;
     currVel = -1 *atoi(dataBuff);
+  }else if(input2 == 'z'){
+    operating = false;
+    lastVel = currVel;
+    currVel = 0;
   }
   if(lastVel <= 0 && currVel > 0){
     digitalWriteFast(stepPinDir, HIGH);
@@ -136,10 +148,12 @@ void resetCommand(){
   currVel = 0;
   lastVel = 0;
   dir = 0;
+  operating = false;
 }
 
 void disableCommand(){
   digitalWrite(stepPinEna, LOW);
+  operating = false;
 }
 
 void reenableCommand(){
@@ -171,7 +185,7 @@ void loop() {
    }
    bool checkLeft = linPos >stepMin || dir > 0;
    bool checkRight = linPos <stepMax || dir < 0;
-   if((dir != 0) && (checkLeft) && (checkRight)){
+   if((dir != 0) && (checkLeft) && (checkRight) && operating){
       digitalWriteFast(stepPinPul, HIGH);
       delayMicroseconds(stepTimeH);
       digitalWriteFast(stepPinPul, LOW);

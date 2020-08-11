@@ -127,24 +127,10 @@ class connector():
     def rewardCalc(self):
         reward = -1
         rewardNum = abs(self.poleAng - 300)
-        if rewardNum <= 285:
-            reward += 5
-            if rewardNum <= 240:
-                reward += 2
-                if rewardNum <=95:
-                    reward += 2
-                    if rewardNum <= 45:
-                        reward += 2
+        reward += (300 - rewardNum) / 15
         
-        cartNum = abs(self.cartPos) / 30
-        if cartNum > 12:
-            reward -= int(cartNum / 2)
-        rewardNumPast = abs(self.poleAngVel - 300)
-        if abs(rewardNum - rewardNumPast) <15:
-            reward -=2
-        if rewardNum < 50 and rewardNumPast < 50:
-            reward += 20
-            self.done = True
+        if abs(self.cartPos) >= 700:
+            reward -=1
         if abs(self.cartPos) >= 900:
             self.done = True;
         if self.stepTime > 80:
@@ -158,11 +144,11 @@ class connector():
         
         
         if action == 0:
-            self.actionPower = -600
+            self.actionPower = -800
         elif action == 1:
-            self.actionPower = 600
-       # elif action == 2:
-           # self.actionPower = 500
+            self.actionPower = 0
+        elif action == 2:
+            self.actionPower = 800
         #elif action == 3:
           #  self.actionPower = 250
       #  elif action == 4:
@@ -181,9 +167,12 @@ class connector():
             self.serialCom.write(b'c')
             if self.actionPower > 0:
                 self.serialCom.write(b'p')
-            else:
+                self.serialCom.write(("%03d" % abs(self.actionPower)).encode())
+            elif self.actionPower < 0:
                 self.serialCom.write(b'n')
-            self.serialCom.write(("%03d" % abs(self.actionPower)).encode())
+                self.serialCom.write(("%03d" % abs(self.actionPower)).encode())
+            elif self.actionPower == 0:
+                self.serialCom.write(b'z')
             
         
         sleep(0.1)

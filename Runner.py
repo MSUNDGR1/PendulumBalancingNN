@@ -14,7 +14,7 @@ from time import sleep
 if __name__ == '__main__':
     env = connector()
     sleep(2)
-    agent = Agent(lr=0.008, input_dims=4, gamma=0.97, n_actions=2,
+    agent = Agent(lr=0.005, input_dims=4, gamma=0.99, n_actions=3,
                   l1_size=256, l2_size=128)
     while True:
         check = input('Command: \n')
