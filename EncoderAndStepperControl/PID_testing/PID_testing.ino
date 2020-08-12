@@ -17,7 +17,7 @@ int linPos;
 unsigned int stepTimeH;
 
 
-double kp = 8;
+double kp = 5;
 double ki = 0.000;
 double kd = 0;
 
@@ -27,7 +27,7 @@ double error;
 double lastError;
 double output, setPoint;
 double cumError, rateError;
-
+bool active;
 void setup() {
   Serial.begin(9600);
   // put your setup code here, to run once:
@@ -46,41 +46,48 @@ void setup() {
   previousTime = 0;
   setPoint = 0;
   cumError = 0;
+  active = false;
+  stepTimeH = 100000;
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  output = computePID(incAngPos);
-  stepTimeH = (int)(50000 / abs(output));
-  if(output < 0){
-    digitalWriteFast(stepPinDir, LOW);
-    int stepNum = 10;
-    for(int i = 0; i < stepNum; i++){
-      linPos--;
-      digitalWriteFast(stepPinPul, HIGH);
-      delayMicroseconds(stepTimeH);
-      digitalWriteFast(stepPinPul, LOW);
-      delayMicroseconds(stepTimeH);
+  if(!active && incAngPos > 295) active = true;
+  if(active){
+   double sineAdjust = (incAngPos * 2 * 3.14) / 600;
+   double sine = sin(sineAdjust) * -1;
+   output = computePID(sine);
+   stepTimeH = (int)(50000 / abs(output));
+   if(output < 0){
+      digitalWriteFast(stepPinDir, LOW);
+      int stepNum = 20;
+      for(int i = 0; i < stepNum; i++){
+        linPos--;
+        digitalWriteFast(stepPinPul, HIGH);
+        delayMicroseconds(stepTimeH);
+        digitalWriteFast(stepPinPul, LOW);
+        delayMicroseconds(stepTimeH);
+      }
+    }else if(output > 0){
+      digitalWriteFast(stepPinDir, HIGH);
+      int stepNum = 20;
+      for(int i = 0; i < stepNum; i++){
+        linPos++;
+        digitalWriteFast(stepPinPul, HIGH);
+        delayMicroseconds(stepTimeH);
+        digitalWriteFast(stepPinPul, LOW);
+        delayMicroseconds(stepTimeH);
+      }
     }
-  }else if(output > 0){
-    digitalWriteFast(stepPinDir, HIGH);
-    int stepNum = 10;
-    for(int i = 0; i < stepNum; i++){
-      linPos++;
-      digitalWriteFast(stepPinPul, HIGH);
-      delayMicroseconds(stepTimeH);
-      digitalWriteFast(stepPinPul, LOW);
-      delayMicroseconds(stepTimeH);
+    if(linPos > stepMax || linPos < stepMin){
+      digitalWrite(stepPinEna, LOW);
     }
-  }
-  if(linPos > stepMax || linPos < stepMin){
-    digitalWrite(stepPinEna, LOW);
   }
 }
 
 double computePID(double inp){
-  currentTime = millis();
-  elapsedTime = (double)(currentTime - previousTime);
+  //currentTime = millis();
+  elapsedTime = (double)((stepTimeH * 20) / 1000);
 
   error = setPoint - inp;
   cumError += error * elapsedTime;
