@@ -40,7 +40,6 @@ void setup() {
   digitalWrite(stepPinEna, HIGH);
   pinAState = digitalRead(encPinA);
   linPos = 0;
-  stepTimeH = 1000;
   pinBState = digitalReadFast(encPinB);
   attachInterrupt(digitalPinToInterrupt(encPinA), APULSE, FALLING);
   lastError = 0;
@@ -50,32 +49,32 @@ void setup() {
 }
 
 void loop() {
-  delayMicroseconds(100000);
   // put your main code here, to run repeatedly:
   output = computePID(incAngPos);
+  stepTimeH = (int)(50000 / abs(output));
   if(output < 0){
     digitalWriteFast(stepPinDir, LOW);
-    int stepNum = abs(output);
+    int stepNum = 10;
     for(int i = 0; i < stepNum; i++){
       linPos--;
       digitalWriteFast(stepPinPul, HIGH);
-      delayMicroseconds(600);
+      delayMicroseconds(stepTimeH);
       digitalWriteFast(stepPinPul, LOW);
-      delayMicroseconds(600);
+      delayMicroseconds(stepTimeH);
     }
   }else if(output > 0){
     digitalWriteFast(stepPinDir, HIGH);
-    int stepNum = abs(output);
+    int stepNum = 10;
     for(int i = 0; i < stepNum; i++){
       linPos++;
       digitalWriteFast(stepPinPul, HIGH);
-      delayMicroseconds(900);
+      delayMicroseconds(stepTimeH);
       digitalWriteFast(stepPinPul, LOW);
-      delayMicroseconds(900);
+      delayMicroseconds(stepTimeH);
     }
   }
   if(linPos > stepMax || linPos < stepMin){
-    delayMicroseconds(100000000);
+    digitalWrite(stepPinEna, LOW);
   }
 }
 
