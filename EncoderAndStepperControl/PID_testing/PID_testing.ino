@@ -13,7 +13,7 @@ volatile bool pinAState = LOW;
 volatile bool pinBState = LOW;
 volatile int incAngPos = 0;
 
-int linPos;
+int linPos, currVel;
 unsigned int stepTimeH;
 
 
@@ -46,48 +46,51 @@ void setup() {
   previousTime = 0;
   setPoint = 0;
   cumError = 0;
+  currVel = 0;
   active = false;
   stepTimeH = 100000;
 }
+
+int stepCount = 0;
 
 void loop() {
   // put your main code here, to run repeatedly:
   if(!active && incAngPos > 295) active = true;
   if(active){
-   double sineAdjust = (incAngPos * 2 * 3.14) / 600;
-   double sine = sin(sineAdjust) * -1;
-   output = computePID(sine);
-   stepTimeH = (int)(50000 / abs(output));
-   if(output < 0){
+    if(stepCount % 20 == 0){
+     output = computePID(incAngPos);
+     currVel += output;
+     stepTimeH = (int)(50000 / abs(currVel));
+    }
+   if(currVel < 0){
       digitalWriteFast(stepPinDir, LOW);
-      int stepNum = 20;
-      for(int i = 0; i < stepNum; i++){
-        linPos--;
-        digitalWriteFast(stepPinPul, HIGH);
-        delayMicroseconds(stepTimeH);
-        digitalWriteFast(stepPinPul, LOW);
-        delayMicroseconds(stepTimeH);
-      }
-    }else if(output > 0){
+      
+      linPos--;
+      digitalWriteFast(stepPinPul, HIGH);
+      delayMicroseconds(stepTimeH);
+      digitalWriteFast(stepPinPul, LOW);
+      delayMicroseconds(stepTimeH);
+      
+    }else if(currVel > 0){
       digitalWriteFast(stepPinDir, HIGH);
-      int stepNum = 20;
-      for(int i = 0; i < stepNum; i++){
-        linPos++;
-        digitalWriteFast(stepPinPul, HIGH);
-        delayMicroseconds(stepTimeH);
-        digitalWriteFast(stepPinPul, LOW);
-        delayMicroseconds(stepTimeH);
-      }
+      
+      linPos++;
+      digitalWriteFast(stepPinPul, HIGH);
+      delayMicroseconds(stepTimeH);
+      digitalWriteFast(stepPinPul, LOW);
+      delayMicroseconds(stepTimeH);
+      
     }
     if(linPos > stepMax || linPos < stepMin){
       digitalWrite(stepPinEna, LOW);
     }
+    stepCount++;
   }
 }
 
 double computePID(double inp){
-  //currentTime = millis();
-  elapsedTime = (double)((stepTimeH * 20) / 1000);
+  currentTime = millis();
+  elapsedTime = currentTime - previousTime;
 
   error = setPoint - inp;
   cumError += error * elapsedTime;
