@@ -175,7 +175,7 @@ class connector():
                 self.serialCom.write(b'z')
             
         
-        sleep(0.1)
+        sleep(0.05)
         self.stepTime += 1
         
         self.getValues()

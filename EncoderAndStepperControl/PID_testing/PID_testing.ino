@@ -17,9 +17,9 @@ int linPos, currVel;
 unsigned int stepTimeH;
 
 
-double kp = 5;
+double kp = 8;
 double ki = 0.000;
-double kd = 0;
+double kd = 1;
 
 unsigned long currentTime, previousTime;
 double elapsedTime;
@@ -44,7 +44,7 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(encPinA), APULSE, FALLING);
   lastError = 0;
   previousTime = 0;
-  setPoint = 0;
+  setPoint = 300;
   cumError = 0;
   currVel = 0;
   active = false;
@@ -54,15 +54,19 @@ void setup() {
 int stepCount = 0;
 
 void loop() {
+  //Serial.println(incAngPos);
   // put your main code here, to run repeatedly:
   if(!active && incAngPos > 295) active = true;
   if(active){
-    if(stepCount % 20 == 0){
+    if(stepCount % 30 == 0){
      output = computePID(incAngPos);
-     currVel += output;
-     stepTimeH = (int)(50000 / abs(currVel));
+     
+     currVel += (output / 50);
+     if(!((abs(output) > 1000))){
+       stepTimeH = (int)(100000 / abs(output));
+     }
     }
-   if(currVel < 0){
+   if(output < 0){
       digitalWriteFast(stepPinDir, LOW);
       
       linPos--;
@@ -71,7 +75,7 @@ void loop() {
       digitalWriteFast(stepPinPul, LOW);
       delayMicroseconds(stepTimeH);
       
-    }else if(currVel > 0){
+    }else if(output > 0){
       digitalWriteFast(stepPinDir, HIGH);
       
       linPos++;
