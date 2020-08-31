@@ -53,6 +53,12 @@ void setup() {
 
 int stepCount = 0;
 
+float instructTime0 = 0;
+float instructTime1 = 0;
+int dt;
+
+int realStep = 0;
+
 void loop() {
   //Serial.println(incAngPos);
   // put your main code here, to run repeatedly:
@@ -70,19 +76,28 @@ void loop() {
       digitalWriteFast(stepPinDir, LOW);
       
       linPos--;
+      instructTime1 = micros();
+      dt = (int)(instructTime1 - instructTime0);
+      realStep = stepTimeH - dt;
+      delayMicroseconds(realStep);
       digitalWriteFast(stepPinPul, HIGH);
-      delayMicroseconds(stepTimeH);
+      delayMicroseconds(realStep);
       digitalWriteFast(stepPinPul, LOW);
-      delayMicroseconds(stepTimeH);
+      instructTime0 = micros();
       
     }else if(output > 0){
       digitalWriteFast(stepPinDir, HIGH);
       
       linPos++;
+
+      instructTime1 = micros();
+      dt = (int)(instructTime1 - instructTime0);
+      realStep = stepTimeH - dt;
+      delayMicroseconds(realStep);
       digitalWriteFast(stepPinPul, HIGH);
-      delayMicroseconds(stepTimeH);
+      delayMicroseconds(realStep);
       digitalWriteFast(stepPinPul, LOW);
-      delayMicroseconds(stepTimeH);
+      
       
     }
     if(linPos > stepMax || linPos < stepMin){
@@ -93,7 +108,7 @@ void loop() {
 }
 
 double computePID(double inp){
-  currentTime = millis();
+  currentTime = micros() / 1000;
   elapsedTime = currentTime - previousTime;
 
   error = setPoint - inp;
