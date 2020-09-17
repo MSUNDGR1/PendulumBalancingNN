@@ -37,6 +37,7 @@ float UpdateTime = 0.15;
 unsigned int stepTimeH; // calculated in microseconds from currVel, half of each step time
 int dir = 0; //-1 is CCW, 1 is CW, 0 is stationary
 bool operating =  false;
+volatile bool swap = LOW;
 
 char input1;
 char input2;
@@ -62,6 +63,21 @@ void setup() {
   while(Serial.available() > 0){
     char in = Serial.read();
   }
+  //Timer pulse at 15625 hz
+  cli();//stop interrupts
+  TCCR1A = 0;// set entire TCCR1A register to 0
+  TCCR1B = 0;// same for TCCR1B
+  TCNT1  = 0;//initialize counter value to 0
+  // set compare match register for 1hz increments
+  OCR1A = 15624;// = (16*10^6) / (1*1024) - 1 (must be <65536) Sets standard update rate to 2 hz
+  // turn on CTC mode
+  TCCR1B |= (1 << WGM12);
+  // Set CS10 and CS12 bits for 1024 prescaler
+  TCCR1B |= (1 << CS12) | (1 << CS10);  
+  // enable timer compare interrupt
+  TIMSK1 |= (1 << OCIE1A);
+  sei();//allow interrupts
+  
 }
 
 unsigned int stepTimeCalc(int stepsPerSecond){
@@ -122,6 +138,10 @@ void sendCommand(){
 }
 
 void resetCommand(){
+  if(operating == false){ 
+    operating = true;
+    digitalWrite(stepPinEna, HIGH);
+  }
   if(linPos > 0){
       digitalWriteFast(stepPinDir, LOW);
       dir = -1;
@@ -189,16 +209,25 @@ void loop() {
    }
    bool checkLeft = linPos >stepMin || dir > 0;
    bool checkRight = linPos <stepMax || dir < 0;
-   if((dir != 0) && (checkLeft) && (checkRight) && operating){
-      digitalWriteFast(stepPinPul, HIGH);
+   if!(((dir != 0) && (checkLeft) && (checkRight) && operating)){
+      /*digitalWriteFast(stepPinPul, HIGH);
       delayMicroseconds(stepTimeH);
       digitalWriteFast(stepPinPul, LOW);
       delayMicroseconds(stepTimeH);
-      linPos += dir;
+      linPos += dir;*/
+      digitalWrite(stepPinEna, LOW);
+      operating = false;
    }
    
 }
 
+ISR(TIMER1_COMPA_vect){//timer1 interrupt at Xhz drives stepper
+   if((dir != 0) && operating){
+      digitalWriteFast(stepPinPul, swap);
+      swap = !swap;
+      linPos += dir;
+   }
+}
 
 //Encoder pulse position ISR
 void APULSE(){
